@@ -179,7 +179,7 @@ data2 <- left_join(data2, cases, by = c("add" = "levels"))
 ```
 # Geocoding for coordinates data
 ```{r}
-register_google(key = "AIzaSyBWKMyXgmV1vqwXG8H28tgUK4x2HV5GAyE") # Input google API
+register_google(key = "") # Input google API
 ```
 
 ```{r}
