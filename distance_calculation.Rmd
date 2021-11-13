@@ -1,0 +1,133 @@
+---
+title: "euclidean distance"
+author: "Niansheng Niu"
+date: "11/13/2021"
+output: html_document
+---
+
+# Euclidean distance calculation for amenities
+
+# Load in data 
+```{r}
+house <- read.csv("cleaned_data_final.csv")
+```
+
+# convert remaining lease from character to integer 
+
+```{r}
+house$remaining_lease_final <- substr(house$remaining_lease, start = 1, stop = 2)
+house$remaining_lease_final <- as.integer(house$remaining_lease_final)
+```
+
+# Convert to spatialpoints 
+```{r}
+house_sp <- SpatialPoints(coords = cbind(house$lon,house$lat), proj4string = CRS("+init=epsg:4326"))
+```
+
+
+# calculate distance to CBD
+```{r}
+cbd_dist <- as.data.frame(distm(x = house_sp, c(103.85255323664575,1.2786774240431218), fun = distHaversine))
+house <- cbind(house, cbd_dist)
+names(house)[names(house) == 'V1'] <- 'cbd_distance'
+```
+
+# CBD regression
+```{r}
+cbd_model <- lm(resale_price ~ cbd_distance + remaining_lease_final + floor_area_sqm, data = house)
+summary(cbd_model)
+```
+
+# Calculate distance to train stops
+
+```{r}
+train <- read_sf("lta-mrt-station-exit-kml.kml")
+train_pp <- bus[,c("geometry")]
+train_coord <- train_pp %>%
+  mutate(lat = unlist(map(train_pp$geometry,1)),
+         long = unlist(map(train_pp$geometry,2)))
+
+train_sp <- SpatialPoints(coords = cbind(train_coord$lat,train_coord$long), proj4string = CRS("+init=epsg:4326"))
+
+train_dist <- as.data.frame(distm(x = house_sp, train_sp, fun = distHaversine))
+
+# Extract mininum distance to train station
+
+min_train_distance <- as.data.frame(apply(train_dist, 1, FUN = min))
+
+# join data
+
+house <- cbind(house, min_train_distance)
+names(house)[names(house) == "apply(train_dist, 1, FUN = min)"] <- 'train_distance'
+
+```
+
+# Regression with train station and CBD 
+
+```{r}
+cbd_train_model <- lm(resale_price ~ cbd_distance + train_distance + remaining_lease_final + floor_area_sqm, data = house)
+summary(cbd_train_model)
+```
+# distance to hospital
+```{r}
+parks <- read_sf("RelaxSG.kml")
+parks_pp <- parks[,c("geometry")]
+parks_coord <- parks_pp %>%
+  mutate(lat = unlist(map(parks_pp$geometry,1)),
+         long = unlist(map(parks_pp$geometry,2)))
+
+parks_sp <- SpatialPoints(coords = cbind(parks_coord$lat,parks_coord$long), proj4string = CRS("+init=epsg:4326"))
+
+parks_dist <- as.data.frame(distm(x = house_sp, parks_sp, fun = distHaversine))
+
+# Extract mininum distance to parks station
+
+min_park_distance <- as.data.frame(apply(parks_dist, 1, FUN = min))
+
+# join data
+
+house <- cbind(house, min_park_distance)
+names(house)[names(house) == "apply(parks_dist, 1, FUN = min)"] <- 'park_distance'
+
+```
+
+
+# Regression: CBD, park and train 
+
+```{r}
+model_3 <- lm(resale_price ~ cbd_distance + train_distance + park_distance + remaining_lease_final + floor_area_sqm, data = house)
+summary(model_3)
+```
+
+# Calculate distance to hospital
+
+```{r}
+hospital <- read_sf("hospital.kml")
+hospital_sp <- SpatialPoints(coords = cbind(hospital$lon, hospital$lat), proj4string = CRS("+init=epsg:4326"))
+
+hospital_dist <- as.data.frame(distm(x = house_sp, hospital_sp, fun = distHaversine))
+
+# Extract mininum distance to parks station
+
+min_hospital_distance <- as.data.frame(apply(hospital_dist, 1, FUN = min))
+
+# join data
+
+house <- cbind(house, min_hospital_distance)
+names(house)[names(house) == "apply(hospital_dist, 1, FUN = min)"] <- 'hospital_distance'
+```
+
+# Regression: hospital, cbd, train, and parks
+
+```{r}
+model_4 <- lm(resale_price ~ cbd_distance + train_distance + park_distance + hospital_distance +
+                remaining_lease_final + floor_area_sqm, data = house)
+summary(model_4)
+
+```
+
+
+```{r}
+write.csv(house, file = "ed_distance.csv")
+```
+
