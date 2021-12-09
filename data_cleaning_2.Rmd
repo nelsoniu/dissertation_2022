@@ -1,0 +1,164 @@
+# in this markdown, I will reduce the sample size by taking the mean of the house price by year
+
+```{r}
+library(dplyr)
+```
+
+```{r}
+house <- read.csv("house_simplified.csv")
+```
+
+```{r}
+house_reduced <- house %>% dplyr::select("year",
+                                         "house_id",
+                                         "resale_price")
+```
+
+```{r}
+length(unique(house_reduced$house_id))
+```
+
+```{r}
+house_reduced2 <- house_reduced[duplicated(house_reduced$house_id)|duplicated(house_reduced$house_id, fromLast = TRUE),]
+
+
+```
+# Calculating the mean price per house_id (based on address and floor)
+```{r}
+
+test <- aggregate(x = house_reduced$resale_price,
+          by = list(house_reduced$house_id,house_reduced$year),
+          FUN=mean)
+
+test2 <- aggregate(x = house_reduced$resale_price,
+          by = list(house_reduced$year,house_reduced$house_id),
+          FUN=mean)
+
+
+house_mean <- merge(house, test2, by.x = c("house_id", "year"), by.y = c("Group.2", "Group.1"))
+names(house_mean)[names(house_mean) == "x"] <- "mean_price"
+
+house_mean$identifier <- paste(house_mean$name,house_mean$year)
+```
+
+```{r}
+write.csv(house_mean, file = "house_mean.csv")
+```
+
+```{r}
+house_unique_year <- house_mean %>% distinct(house_mean$identifier,.keep_all = T)
+length(unique(house_unique_year$identifier))
+```
+```{r}
+write.csv(house_unique_year, file = "house_reduced.csv")
+```
+
+```{r}
+house <- read.csv("house_mean.csv")
+```
+
+# Calculate price per square meter 
+```{r}
+house$price_per_m2 <- house$resale_price/house$floor_area_sqm
+```
+
+# total number of unique addresses
+```{r}
+length(unique(house$id))
+```
+
+# Calculate the mean price for each coordinate
+```{r}
+mean_price <- aggregate(x = house$price_per_m2,
+          by = list(house$id,house$year),
+          FUN=mean)
+
+names(mean_price)[names(mean_price) == "x"] <- "mean_price_per_m2"
+```
+
+# merge back from original dataset
+```{r}
+house_mean_per_m2 <- merge(house, mean_price, by.x = c("id", "year"), by.y = c("Group.1", "Group.2"))
+```
+
+# add additional identifier for unique address and year
+```{r}
+house_mean_per_m2$add_year <- paste(house_mean_per_m2$add,house_mean_per_m2$year)
+```
+
+# total unique observations
+```{r}
+length(unique(house_mean_per_m2$add_year))
+```
+# filter unique addresses
+```{r}
+library(dplyr)
+house_final <- house_mean_per_m2 %>% distinct(house_mean_per_m2$add_year,.keep_all = T)
+```
+
+# fix the year column
+```{r}
+house_final$year <- paste("20", house_final$year)
+house_final$year <- gsub('\\s+', '', house_final$year)
+```
+
+# Export
+```{r}
+write.csv(house_final, file = "house.csv")
+```
+
+
+# load in data
+```{r}
+house <- read.csv("house.csv")
+```
+
+# keep unique addresses
+```{r}
+template <- house %>% distinct(house$add,.keep_all = F)
+```
+
+# iterate each row 8 times
+```{r}
+template2 <- as.data.frame(template[rep(seq_len(nrow(template)), each = 8), ])
+```
+
+```{r}
+write.csv(template2, file = "templated.csv")
+```
+
+# Load in the template which is edited with excel
+```{r}
+template <- read.csv("template.csv")
+template$add_year <- paste(template$add, template$year)
+```
+
+# create merging column
+```{r}
+house$add_year <- paste(house$add, house$year)
+```
+
+# merge back to create address with complete 2014 - 2021 with NA data
+```{r}
+house_complete <- right_join(house, template, by = c("add_year" = "add_year"))
+```
+# Export
+```{r}
+write.csv(house_complete, file = "house_complete.csv")
+```
+
+
+# Explore the final dataset 
+```{r}
+house <- read.csv("house_complete.csv")
+
+NA_total <- sum(is.na(house$mean_price_per_m2))
+NA_total/73800 * 100
+# 24.06369% missing data
+```
+
+
+
+
+
+
