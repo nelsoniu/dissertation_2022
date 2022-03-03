@@ -1,0 +1,241 @@
+# in this Rmarkdown, I will perform geographically weighted regression to the housing price in each year 
+
+
+# Load in the data
+```{r}
+house <- read.csv("house_complete_v4.csv")
+```
+
+# subset for each year
+```{r}
+house2014 <- house[house$year == 2014,]
+house2015 <- house[house$year == 2015,]
+house2016 <- house[house$year == 2016,]
+house2017 <- house[house$year == 2017,]
+house2018 <- house[house$year == 2018,]
+house2019 <- house[house$year == 2019,]
+house2020 <- house[house$year == 2020,]
+house2021 <- house[house$year == 2021,]
+
+house2014 <- na.omit(house2014)
+house2015 <- na.omit(house2015)
+house2016 <- na.omit(house2016)
+house2017 <- na.omit(house2017)
+house2018 <- na.omit(house2018)
+house2019 <- na.omit(house2019)
+house2020 <- na.omit(house2020)
+house2021 <- na.omit(house2021)
+```
+
+```{r}
+coordinates(house2014) <- ~ lon + lat
+coordinates(house2015) <- ~ lon + lat
+coordinates(house2016) <- ~ lon + lat
+coordinates(house2017) <- ~ lon + lat
+coordinates(house2018) <- ~ lon + lat
+coordinates(house2019) <- ~ lon + lat
+coordinates(house2020) <- ~ lon + lat
+coordinates(house2021) <- ~ lon + lat
+```
+#2014 point data
+
+
+
+
+# all year point data
+```{r}
+house_complete_case <- na.omit(house)
+
+pp <- house_complete_case %>% dplyr::select(lon,lat) %>%
+  st_as_sf(coords = c("lon","lat"), crs = 4326)
+
+house2014@data
+```
+
+```{r}
+tm_shape(sg_pa) + tm_polygons(col = "white", border.alpha = 0.5) +
+  tm_shape(pp2014) + tm_dots(col = "results.cbd_distance_se_EDF", style = "quantile", palette = "Reds", size = 0.1, alpha = 0.5)
+```
+
+
+```{r}
+pp2020 <- house2020 %>% dplyr::select(lon,lat) %>%
+  st_as_sf(coords = c("lon","lat"), crs = 4236)
+
+tm_shape(sg_pa) + tm_polygons(col = "white", border.alpha = 0.5) +
+  tm_shape(pp2020) + tm_dots(col = "blue", size = 0.01, alpha = 0.2)
+```
+
+
+
+############### GWR
+
+```{r}
+GWRbandwidth2014 <- gwr.sel(mean_price_per_m2 ~ cbd_distance + uni_distance + mall_distance + train_distance + park_distance + hospital_distance + bus_distance +
+                              remaining_lease_final, data = house2014, adapt=T)
+```
+
+```{r}
+GWRbandwidth2015 <- gwr.sel(mean_price_per_m2 ~ cbd_distance + uni_distance + mall_distance + train_distance + park_distance + hospital_distance + bus_distance +
+                              remaining_lease_final, data = house2015, adapt=T)
+```
+
+```{r}
+GWRbandwidth2016 <- gwr.sel(mean_price_per_m2 ~ cbd_distance + uni_distance + mall_distance + train_distance + park_distance + hospital_distance + bus_distance +
+                              remaining_lease_final, data = house2016, adapt=T)
+```
+
+```{r}
+GWRbandwidth2017 <- gwr.sel(mean_price_per_m2 ~ cbd_distance + uni_distance + mall_distance + train_distance + park_distance + hospital_distance + bus_distance +
+                              remaining_lease_final, data = house2017, adapt=T)
+```
+```{r}
+GWRbandwidth2018 <- gwr.sel(mean_price_per_m2 ~ cbd_distance + uni_distance + mall_distance + train_distance + park_distance + hospital_distance + bus_distance +
+                              remaining_lease_final, data = house2018, adapt=T)
+```
+
+```{r}
+GWRbandwidth2019 <- gwr.sel(mean_price_per_m2 ~ cbd_distance + uni_distance + mall_distance + train_distance + park_distance + hospital_distance + bus_distance +
+                              remaining_lease_final, data = house2019, adapt=T)
+```
+
+
+
+
+
+
+```{r}
+gwr.model.2014 = gwr(mean_price_per_m2 ~ cbd_distance + uni_distance + mall_distance + train_distance + park_distance + hospital_distance + bus_distance +
+                              remaining_lease_final, data=house2014, adapt= GWRbandwidth2014, hatmatrix=TRUE, se.fit=TRUE) 
+```
+
+
+```{r}
+gwr.model.2015 = gwr(mean_price_per_m2 ~ cbd_distance + uni_distance + mall_distance + train_distance + park_distance + hospital_distance + bus_distance +
+                              remaining_lease_final, data=house2015, adapt= GWRbandwidth2015, hatmatrix=TRUE, se.fit=TRUE) 
+```
+
+```{r}
+gwr.model.2016 = gwr(mean_price_per_m2 ~ cbd_distance + uni_distance + mall_distance + train_distance + park_distance + hospital_distance + bus_distance +
+                              remaining_lease_final, data=house2016, adapt= GWRbandwidth2016, hatmatrix=TRUE, se.fit=TRUE)  
+```
+
+```{r}
+gwr.model.2017 = gwr(mean_price_per_m2 ~ cbd_distance + uni_distance + mall_distance + train_distance + park_distance + hospital_distance + bus_distance +
+                              remaining_lease_final, data=house2017, adapt= GWRbandwidth2017, hatmatrix=TRUE, se.fit=TRUE)  
+```
+
+```{r}
+gwr.model.2018 = gwr(mean_price_per_m2 ~ cbd_distance + uni_distance + mall_distance + train_distance + park_distance + hospital_distance + bus_distance +
+                              remaining_lease_final, data=house2018, adapt= GWRbandwidth2018, hatmatrix=TRUE, se.fit=TRUE)  
+```
+
+```{r}
+gwr.model.2019 = gwr(mean_price_per_m2 ~ cbd_distance + uni_distance + mall_distance + train_distance + park_distance + hospital_distance + bus_distance +
+                              remaining_lease_final, data=house2019, adapt= GWRbandwidth2019, hatmatrix=TRUE, se.fit=TRUE)  
+```
+
+```{r}
+gwr.model.2016
+```
+
+```{r}
+gwr.model.2014
+```
+
+```{r}
+gwr.model.2016
+```
+
+```{r}
+gwr.model.2017
+```
+
+```{r}
+gwr.model.2018
+```
+
+
+# 2014
+```{r}
+pp2014 <- house2014 %>% dplyr::select(lon,lat) %>%
+  st_as_sf(coords = c("lon","lat"), crs = 4326)
+results2014 <- as.data.frame(gwr.model.2014$SDF)
+pp2014 <- cbind(results2014$localR2,pp2014)
+pp2014 <- cbind(pp2014, house2014$mean_price_per_m2)
+```
+# 2015
+```{r}
+pp2015 <- house2015 %>% dplyr::select(lon,lat) %>%
+  st_as_sf(coords = c("lon","lat"), crs = 4326)
+results2015 <- as.data.frame(gwr.model.2015$SDF)
+pp2015 <- cbind(results2015$localR2,pp2015)
+pp2015 <- cbind(pp2015, house2015$mean_price_per_m2)
+```
+# 2016
+```{r}
+pp2016 <- house2016 %>% dplyr::select(lon,lat) %>%
+  st_as_sf(coords = c("lon","lat"), crs = 4326)
+results2016 <- as.data.frame(gwr.model.2016$SDF)
+pp2016 <- cbind(results2016$localR2,pp2016)
+pp2016 <- cbind(pp2016, house2016$mean_price_per_m2)
+```
+#2017
+```{r}
+pp2017 <- house2017 %>% dplyr::select(lon,lat) %>%
+  st_as_sf(coords = c("lon","lat"), crs = 4326)
+
+pp2017 <- cbind(pp2017, house2017$mean_price_per_m2)
+
+results2016 <- as.data.frame(gwr.model.2016$SDF)
+
+pp2016 <- cbind(results2016$localR2,pp2016)
+
+```
+#2018
+```{r}
+pp2018 <- house2018 %>% dplyr::select(lon,lat) %>%
+  st_as_sf(coords = c("lon","lat"), crs = 4326)
+
+pp2018 <- cbind(pp2018, house2018$mean_price_per_m2)
+
+results2016 <- as.data.frame(gwr.model.2016$SDF)
+
+pp2016 <- cbind(results2016$localR2,pp2016)
+```
+#2019
+```{r}
+pp2019 <- house2019 %>% dplyr::select(lon,lat) %>%
+  st_as_sf(coords = c("lon","lat"), crs = 4326)
+
+pp2019 <- cbind(pp2019, house2019$mean_price_per_m2)
+
+results2016 <- as.data.frame(gwr.model.2016$SDF)
+
+pp2016 <- cbind(results2016$localR2,pp2016)
+```
+# 2020
+```{r}
+pp2020 <- house2020 %>% dplyr::select(lon,lat) %>%
+  st_as_sf(coords = c("lon","lat"), crs = 4326)
+
+pp2020 <- cbind(pp2020, house2020$mean_price_per_m2)
+
+results2016 <- as.data.frame(gwr.model.2016$SDF)
+
+pp2016 <- cbind(results2016$localR2,pp2016)
+```
+# 2021
+```{r}
+pp2021 <- house2021 %>% dplyr::select(lon,lat) %>%
+  st_as_sf(coords = c("lon","lat"), crs = 4326)
+
+pp2021 <- cbind(pp2021, house2021$mean_price_per_m2)
+
+results2016 <- as.data.frame(gwr.model.2016$SDF)
+
+pp2016 <- cbind(results2016$localR2,pp2016)
+```
+
+
+
