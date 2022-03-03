@@ -1,0 +1,176 @@
+# In this Rmd, I performed haversine distance calculation for spatial proximity to 7 amenities: CBD, train stops, park, hospital, shopping malls, bus stops, and university
+
+
+```{r}
+library(geosphere)
+```
+
+# Load in data 
+```{r}
+house <- read.csv("cleaned_data_final.csv")
+```
+
+# convert remaining lease from character to integer 
+```{r}
+house$remaining_lease_final <- substr(house$remaining_lease, start = 1, stop = 2)
+house$remaining_lease_final <- as.integer(house$remaining_lease_final)
+```
+
+# Convert to spatialpoints 
+```{r}
+house_sp <- SpatialPoints(coords = cbind(house$lon,house$lat), proj4string = CRS("+init=epsg:4326"))
+```
+
+# calculate distance to CBD
+```{r}
+cbd_dist <- as.data.frame(distm(x = house_sp, c(103.85255323664575,1.2786774240431218), fun = distHaversine)) #coordinate for CBD
+house <- cbind(house, cbd_dist)
+names(house)[names(house) == 'V1'] <- 'cbd_distance'
+```
+
+# Calculate distance to train stops
+```{r}
+train <- read_sf("lta-mrt-station-exit-kml.kml")
+train_pp <- bus[,c("geometry")]
+train_coord <- train_pp %>%
+  mutate(lat = unlist(map(train_pp$geometry,1)),
+         long = unlist(map(train_pp$geometry,2)))
+
+train_sp <- SpatialPoints(coords = cbind(train_coord$lat,train_coord$long), proj4string = CRS("+init=epsg:4326"))
+
+# Calculate distance matrix 
+train_dist <- as.data.frame(distm(x = house_sp, train_sp, fun = distHaversine))
+
+# Extract mininum distance to train station
+min_train_distance <- as.data.frame(apply(train_dist, 1, FUN = min))
+
+# join data
+house <- cbind(house, min_train_distance)
+names(house)[names(house) == "apply(train_dist, 1, FUN = min)"] <- 'train_distance'
+
+```
+
+# distance to park
+```{r}
+parks <- read_sf("RelaxSG.kml")
+parks_pp <- parks[,c("geometry")]
+parks_coord <- parks_pp %>%
+  mutate(lat = unlist(map(parks_pp$geometry,1)),
+         long = unlist(map(parks_pp$geometry,2)))
+
+parks_sp <- SpatialPoints(coords = cbind(parks_coord$lat,parks_coord$long), proj4string = CRS("+init=epsg:4326"))
+
+parks_dist <- as.data.frame(distm(x = house_sp, parks_sp, fun = distHaversine))
+
+# Extract mininum distance to parks station
+min_park_distance <- as.data.frame(apply(parks_dist, 1, FUN = min))
+
+# join data
+house <- cbind(house, min_park_distance)
+names(house)[names(house) == "apply(parks_dist, 1, FUN = min)"] <- 'park_distance'
+
+```
+
+# Calculate distance to hospital
+```{r}
+hospital <- read_sf("hospital.kml")
+hospital_sp <- SpatialPoints(coords = cbind(hospital$lon, hospital$lat), proj4string = CRS("+init=epsg:4326"))
+hospital_dist <- as.data.frame(distm(x = house_sp, hospital_sp, fun = distHaversine))
+
+# Extract mininum distance to parks station
+min_hospital_distance <- as.data.frame(apply(hospital_dist, 1, FUN = min))
+
+# join data
+house <- cbind(house, min_hospital_distance)
+names(house)[names(house) == "apply(hospital_dist, 1, FUN = min)"] <- 'hospital_distance'
+```
+
+# Calculate distance to university
+```{r}
+# first obtain unversity locations using open street map (OSM)
+subzone <- read_sf("SUBZONE")
+sg_outline <- subzone %>% st_union()
+p_bbox <- st_bbox(st_transform(sg_outline, 4326))
+sg_uni_osm <- opq(bbox = p_bbox) %>%
+  add_osm_feature(key = "amenity", value = "university") %>% 
+  osmdata_sf()
+uni_pp <- sg_uni_osm$osm_points[,c("osm_id")] %>% st_transform(4326) %>% st_intersections(sg_outline)
+
+
+# transform geometry into long and lat
+uni_coord <- uni_pp %>%
+  mutate(lat = unlist(map(uni_pp$geometry,2)),
+         long = unlist(map(uni_pp$geometry,1)))
+
+uni_sp <- SpatialPoints(coords = cbind(uni_coord$lon,uni_coord$lat), proj4string = CRS("+init=epsg:4326"))
+uni_dist <- as.data.frame(distm(x = house_sp, uni_sp, fun = distHaversine))
+min_uni_distance <- as.data.frame(apply(uni_dist, 1, FUN = min))
+house <- cbind(house, min_uni_distance)
+names(house)[names(house) == "apply(uni_dist, 1, FUN = min)"] <- 'uni_distance'
+```
+
+# Calculate distance to bus stops
+```{r}
+# read in bus stop shp
+bus_pp <- read_sf("BusStopLocation_Jan2022")
+
+# unlist geometry
+bus_coord <- bus_pp %>%
+  mutate(lat = unlist(map(bus_pp$geometry,1)),
+         long = unlist(map(bus_pp$geometry,2)))
+
+bus_df <- as.data.frame(bus_coord) %>%
+  st_as_sf(coords = c("lat", "long"), crs = 3414) %>%
+  st_transform(4326)
+
+bus_df <- bus_df %>%
+  mutate(lat = unlist(map(bus_df$geometry,1)),
+         long = unlist(map(bus_df$geometry,2)))
+
+bus_sp <- SpatialPoints(coords = cbind(bus_df$lat,bus_df$long), proj4string = CRS("+init=epsg:4326"))
+plot(bus_sp)
+
+# haversine distance to bus stops
+bus_dist <- as.data.frame(distm(x = house_sp, bus_sp, fun = distHaversine))
+min_bus_distance <- as.data.frame(apply(bus_dist, 1, FUN = min))
+house <- cbind(house, min_bus_distance)
+names(house)[names(house) == "apply(bus_dist, 1, FUN = min)"] <- 'bus_distance'
+```
+# Calculate distance to shopping malls
+```{r}
+mall <- read.csv("sg_malls.csv")
+mall_sp <- SpatialPoints(coords = cbind(mall$lon,mall$lat), proj4string = CRS("+init=epsg:4326"))
+mall_dist <- as.data.frame(distm(x = house_sp, mall_sp, fun = distHaversine))
+min_mall_distance <- as.data.frame(apply(mall_dist, 1, FUN = min))
+house <- cbind(house, min_mall_distance)
+names(house)[names(house) == "apply(mall_dist, 1, FUN = min)"] <- 'mall_distance'
+```
+
+```{r}
+write.csv(house, file = "ed_distance.csv")
+```
+
+
+# clean dataset
+```{r}
+house$year <- format(as.Date(house$month, format="%d/%m/%Y"),"%Y")
+class(house$year)
+
+house$year <- substr(house$year, 3, 4)
+house$year <- as.numeric(house$year)
+class(house$year)
+
+
+house$name <- as.factor(house$name)
+cases <- data.frame(levels = levels(house$name))
+cases <- cases %>% 
+  mutate(id = rownames(cases))
+
+names(cases)[names(cases) == "id"] <- "house_id"
+house <- left_join(house, cases, by = c("name" = "levels"))
+
+write.csv(house, file = "house_final.csv")
+```
+
+
+
