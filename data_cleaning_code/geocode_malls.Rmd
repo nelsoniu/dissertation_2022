@@ -13,7 +13,7 @@ mall$add <- paste(mall$name, "Singapore")
 mall <- mall %>% dplyr::select("name",
                                "add")  
 
-register_google(key = "AIzaSyBLUT7NGL0UG9rasx3LZPCX4XCeXXkPDYU") # Input google API
+register_google(key = "") # Input google API
 
 all_add <- as.data.frame(unique(mall$add))
 
