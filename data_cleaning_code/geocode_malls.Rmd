@@ -1,0 +1,30 @@
+# In this Rmd, I performed geocoding to shopping mall addresses in Singapore
+
+```{r}
+library(ggmap)
+library(dplyr)
+```
+
+# Geocoding
+```{r}
+mall <- read.csv("malls.csv")
+
+mall$add <- paste(mall$name, "Singapore")
+mall <- mall %>% dplyr::select("name",
+                               "add")  
+
+register_google(key = "AIzaSyBLUT7NGL0UG9rasx3LZPCX4XCeXXkPDYU") # Input google API
+
+all_add <- as.data.frame(unique(mall$add))
+
+all_latlon <- data.frame()
+for (i in all_add){
+  append_data <- data.frame(
+    add = i,
+    geocode(i, source = "google")
+  )
+  all_latlon <- rbind(all_latlon, append_data)
+}
+
+write.csv(all_latlon, file = "sg_malls.csv")
+```
