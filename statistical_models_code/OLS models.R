@@ -55,20 +55,6 @@ stargazer(ols2014,ols2015,ols2016,ols2017,ols2018,ols2019,ols2020,ols2021, type 
 
 
 
-##### experiment
-house.subset <- house2014[1:100,]
-summary(lm(mean_price_per_m2 ~ cbd_distance + uni_distance + mall_distance + train_distance + 
-             park_distance + hospital_distance + bus_distance + remaining_lease_final, data = house.subset))
 
-house.subset@data
-
-coordinates(house.subset) <- ~ lon + lat
-GWRbandwidth <- gwr.sel(mean_price_per_m2 ~ cbd_distance + uni_distance + mall_distance + train_distance + park_distance + hospital_distance + bus_distance +
-                              remaining_lease_final, data = house.subset, adapt=T)
-
-gwr <- gwr(mean_price_per_m2 ~ cbd_distance + uni_distance + mall_distance + train_distance + park_distance + hospital_distance + bus_distance +
-      remaining_lease_final, data=house.subset, adapt= GWRbandwidth, hatmatrix=TRU3E, se.fit=F) 
-
-gwr
 
 
